@@ -61,16 +61,20 @@ static bool can_enable_feedback_on_device(snd_device_t snd_device)
 {
   bool ret = false;
 
-  if (snd_device == SND_DEVICE_OUT_SPEAKER ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_REVERSE ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_AND_HDMI ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_AND_LINE ||
-      snd_device == SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET ||
-      snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
-      snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2) {
+  switch (snd_device) {
+  case SND_DEVICE_OUT_SPEAKER:
+  case SND_DEVICE_OUT_SPEAKER_REVERSE:
+  case SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET:
+  case SND_DEVICE_OUT_SPEAKER_AND_HDMI:
+  case SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES:
+  case SND_DEVICE_OUT_SPEAKER_AND_LINE:
+  case SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET:
+  case SND_DEVICE_OUT_VOICE_SPEAKER:
+  case SND_DEVICE_OUT_VOICE_SPEAKER_2:
     ret = true;
+    break;
+  default:
+    break;
   }
 
   return ret;
