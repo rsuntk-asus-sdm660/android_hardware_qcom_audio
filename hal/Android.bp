@@ -41,6 +41,7 @@ target_board_platform_cc_library_shared {
         "msm8974/platform.c",
         "voice_extn/compress_voip.c",
         "voice_extn/voice_extn.c",
+	"audio_extn/tfa98xx_feedback.c",
     ] + select(soong_config_variable("qtiaudio", "feature_ext_amplifier"), {
         "true": ["audio_extn/audio_amplifier.c"],
         default: [],
@@ -49,9 +50,6 @@ target_board_platform_cc_library_shared {
         default: [],
     }) + select(soong_config_variable("qtiaudio", "feature_sound_trigger"), {
         "true": ["audio_extn/soundtrigger.c"],
-        default: [],
-    }) + select(soong_config_variable("qtiaudio", "feature_tfa98xx_amplifier"), {
-        "true": ["audio_extn/tfa98xx_feedback.c"],
         default: [],
     }),
 
@@ -76,9 +74,6 @@ target_board_platform_cc_library_shared {
         default: [],
     }) + select(soong_config_variable("qtiaudio", "feature_sound_trigger"), {
         "true": ["-DSOUND_TRIGGER_ENABLED"],
-        default: [],
-    }) + select(soong_config_variable("qtiaudio", "feature_tfa98xx_amplifier"), {
-        "true": ["-DTFA98XX_ENABLED"],
         default: [],
     }) + select(soong_config_variable("ANDROID", "target_board_platform"), {
         "sdm660": [
