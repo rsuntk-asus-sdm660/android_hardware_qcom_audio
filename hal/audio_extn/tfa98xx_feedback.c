@@ -59,124 +59,123 @@ static struct pcm *pcm_rx;
 
 static bool can_enable_feedback_on_device(snd_device_t snd_device)
 {
-    bool ret = false;
+  bool ret = false;
 
-    if (snd_device == SND_DEVICE_OUT_SPEAKER ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_REVERSE ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_AND_HDMI ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_AND_LINE ||
-        snd_device == SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET ||
-        snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
-		snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2 ) {
-        ret = true;
-    }
+  if (snd_device == SND_DEVICE_OUT_SPEAKER ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_REVERSE ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_AND_HDMI ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_AND_LINE ||
+      snd_device == SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET ||
+      snd_device == SND_DEVICE_OUT_VOICE_SPEAKER ||
+      snd_device == SND_DEVICE_OUT_VOICE_SPEAKER_2) {
+    ret = true;
+  }
 
-    return ret;
+  return ret;
 }
-int audio_extn_tfa98xx_start_feedback(struct audio_device *adev, 
-													 snd_device_t snd_device)
-{
-    struct audio_usecase *uc_info_rx = NULL;
-    int32_t pcm_dev_rx_id = -1, ret = 0;
 
-	if (!can_enable_feedback_on_device(snd_device))
-		return 0;
+int audio_extn_tfa98xx_start_feedback(struct audio_device *adev,
+                                      snd_device_t snd_device) {
+  struct audio_usecase *uc_info_rx = NULL;
+  int32_t pcm_dev_rx_id = -1, ret = 0;
 
-    ALOGV("%s: Entry", __func__);
+  if (!can_enable_feedback_on_device(snd_device))
+    return 0;
 
-    if (!adev) {
-       ALOGE("%s: Invalid params", __func__);
-       return -EINVAL;
+  ALOGV("%s: Entry", __func__);
+
+  if (!adev) {
+    ALOGE("%s: Invalid params", __func__);
+    return -EINVAL;
+  }
+
+  if (!pcm_rx) {
+
+    uc_info_rx =
+        (struct audio_usecase *)calloc(1, sizeof(struct audio_usecase));
+    if (!uc_info_rx) {
+      return -ENOMEM;
     }
 
-    if (!pcm_rx) {
-		
-		uc_info_rx = (struct audio_usecase *)calloc(1, sizeof(struct audio_usecase));
-		if (!uc_info_rx) {
-			return -ENOMEM;
-		}
-		
-        uc_info_rx->id = USECASE_AUDIO_SPKR_CALIB_TX;
-        uc_info_rx->type = PCM_CAPTURE;
-        uc_info_rx->in_snd_device = SND_DEVICE_IN_CAPTURE_VI_FEEDBACK;
-        uc_info_rx->out_snd_device = SND_DEVICE_NONE;
-        list_init(&uc_info_rx->device_list);
+    uc_info_rx->id = USECASE_AUDIO_SPKR_CALIB_TX;
+    uc_info_rx->type = PCM_CAPTURE;
+    uc_info_rx->in_snd_device = SND_DEVICE_IN_CAPTURE_VI_FEEDBACK;
+    uc_info_rx->out_snd_device = SND_DEVICE_NONE;
+    list_init(&uc_info_rx->device_list);
 
-        list_add_tail(&adev->usecase_list, &uc_info_rx->list);
+    list_add_tail(&adev->usecase_list, &uc_info_rx->list);
 
-        enable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
-        enable_audio_route(adev, uc_info_rx);
+    enable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
+    enable_audio_route(adev, uc_info_rx);
 
-        pcm_dev_rx_id = platform_get_pcm_device_id(uc_info_rx->id, PCM_CAPTURE);
-        if (pcm_dev_rx_id < 0) {
-            ALOGE("%s: Invalid pcm device for usecase (%d)",
-                  __func__, uc_info_rx->id);
-            ret = -ENODEV;
-            goto exit;
-        }
-        pcm_rx = pcm_open(adev->snd_card,
-                          pcm_dev_rx_id,
-                          PCM_IN, &pcm_config_tfa98xx_fb);
-        if (pcm_rx && !pcm_is_ready(pcm_rx)) {
-            ALOGE("%s: %s", __func__, pcm_get_error(pcm_rx));
-            ret = -EIO;
-            goto exit;
-        }
-        if (pcm_start(pcm_rx) < 0) {
-            ALOGE("%s: pcm start for TX failed", __func__);
-            ret = -EINVAL;
-        }
+    pcm_dev_rx_id = platform_get_pcm_device_id(uc_info_rx->id, PCM_CAPTURE);
+    if (pcm_dev_rx_id < 0) {
+      ALOGE("%s: Invalid pcm device for usecase (%d)", __func__,
+            uc_info_rx->id);
+      ret = -ENODEV;
+      goto exit;
     }
+    pcm_rx =
+        pcm_open(adev->snd_card, pcm_dev_rx_id, PCM_IN, &pcm_config_tfa98xx_fb);
+    if (pcm_rx && !pcm_is_ready(pcm_rx)) {
+      ALOGE("%s: %s", __func__, pcm_get_error(pcm_rx));
+      ret = -EIO;
+      goto exit;
+    }
+    if (pcm_start(pcm_rx) < 0) {
+      ALOGE("%s: pcm start for TX failed", __func__);
+      ret = -EINVAL;
+    }
+  }
 
 exit:
 
-     if (ret) {
-        if (pcm_rx)
-            pcm_close(pcm_rx);
-		
-        pcm_rx = NULL;
+  if (ret) {
+    if (pcm_rx)
+      pcm_close(pcm_rx);
 
-		disable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
-		if (uc_info_rx) {
-        	list_remove(&uc_info_rx->list);
-        	uc_info_rx->id = USECASE_AUDIO_SPKR_CALIB_TX;
-       		uc_info_rx->type = PCM_CAPTURE;
-        	uc_info_rx->in_snd_device = SND_DEVICE_IN_CAPTURE_VI_FEEDBACK;
-        	uc_info_rx->out_snd_device = SND_DEVICE_NONE;
-       
-        	disable_audio_route(adev, uc_info_rx);
-        	free(uc_info_rx);
-		}
-    } 
-	 
-    ALOGV("%s: Exit", __func__);
-    return ret;
+    pcm_rx = NULL;
+
+    disable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
+    if (uc_info_rx) {
+      list_remove(&uc_info_rx->list);
+      uc_info_rx->id = USECASE_AUDIO_SPKR_CALIB_TX;
+      uc_info_rx->type = PCM_CAPTURE;
+      uc_info_rx->in_snd_device = SND_DEVICE_IN_CAPTURE_VI_FEEDBACK;
+      uc_info_rx->out_snd_device = SND_DEVICE_NONE;
+
+      disable_audio_route(adev, uc_info_rx);
+      free(uc_info_rx);
+    }
+  }
+
+  ALOGV("%s: Exit", __func__);
+  return ret;
 }
 
-void audio_extn_tfa98xx_stop_feedback(struct audio_device *adev, 
-													 snd_device_t snd_device)
-{
-    struct audio_usecase *uc_info_rx;
+void audio_extn_tfa98xx_stop_feedback(struct audio_device *adev,
+                                      snd_device_t snd_device) {
+  struct audio_usecase *uc_info_rx;
 
-	if (!can_enable_feedback_on_device(snd_device))
-		return;
+  if (!can_enable_feedback_on_device(snd_device))
+    return;
 
-    ALOGV("%s: Entry", __func__);
+  ALOGV("%s: Entry", __func__);
 
-    uc_info_rx = get_usecase_from_list(adev, USECASE_AUDIO_SPKR_CALIB_TX);
-	
-   	if (pcm_rx)
-       	pcm_close(pcm_rx);
-	
-   	pcm_rx = NULL;
-   	disable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
-   	if (uc_info_rx) {
-       	list_remove(&uc_info_rx->list);
-       	disable_audio_route(adev, uc_info_rx);
-       	free(uc_info_rx);
-   	}
-   
-    ALOGV("%s: Exit", __func__);
+  uc_info_rx = get_usecase_from_list(adev, USECASE_AUDIO_SPKR_CALIB_TX);
+
+  if (pcm_rx)
+    pcm_close(pcm_rx);
+
+  pcm_rx = NULL;
+  disable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
+  if (uc_info_rx) {
+    list_remove(&uc_info_rx->list);
+    disable_audio_route(adev, uc_info_rx);
+    free(uc_info_rx);
+  }
+
+  ALOGV("%s: Exit", __func__);
 }
