@@ -44,9 +44,6 @@
 #include <cutils/properties.h>
 #include "audio_extn.h"
 
-
-#ifdef TFA98XX_ENABLED
-
 static struct pcm_config pcm_config_tfa98xx_fb = {
     .channels = 2,
     .rate = 48000,
@@ -183,5 +180,3 @@ void audio_extn_tfa98xx_stop_feedback(struct audio_device *adev,
    
     ALOGV("%s: Exit", __func__);
 }
-
-#endif /*TFA98XX_ENABLED*/
