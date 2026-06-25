@@ -9417,7 +9417,6 @@ static int adev_update_voice_comm_input_stream(struct stream_in *in,
     bool valid_ch = audio_channel_count_from_in_mask(in->channel_mask) == 1;
 
     if(!voice_extn_is_compress_voip_supported()) {
-#if 0
         if (valid_rate && valid_ch) {
         in->usecase = USECASE_AUDIO_RECORD_VOIP;
         in->config = default_pcm_config_voip_copp;
@@ -9429,7 +9428,6 @@ static int adev_update_voice_comm_input_stream(struct stream_in *in,
                    "sample rate %u, channel mask 0x%X",
                    __func__, config->sample_rate, in->channel_mask);
         }
-#endif
         in->config.rate = config->sample_rate;
         in->sample_rate = config->sample_rate;
     } else {
