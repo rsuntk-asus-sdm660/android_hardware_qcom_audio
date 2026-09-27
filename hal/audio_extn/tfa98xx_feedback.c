@@ -31,18 +31,19 @@
 /*#define LOG_NDEBUG 0*/
 #define LOG_NDDEBUG 0
 
-#include <errno.h>
-#include <math.h>
 #include <cutils/log.h>
-#include <fcntl.h>
+#include <cutils/properties.h>
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
+#include "audio_extn.h"
 #include "audio_hw.h"
 #include "platform.h"
 #include "platform_api.h"
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <cutils/properties.h>
-#include "audio_extn.h"
 
 static struct pcm_config pcm_config_tfa98xx_fb = {
     .channels = 2,
@@ -57,27 +58,23 @@ static struct pcm_config pcm_config_tfa98xx_fb = {
 
 static struct pcm *pcm_rx;
 
-static bool can_enable_feedback_on_device(snd_device_t snd_device)
-{
-  bool ret = false;
-
+static bool can_enable_feedback_on_device(snd_device_t snd_device) {
   switch (snd_device) {
-  case SND_DEVICE_OUT_SPEAKER:
-  case SND_DEVICE_OUT_SPEAKER_REVERSE:
-  case SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET:
-  case SND_DEVICE_OUT_SPEAKER_AND_HDMI:
-  case SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES:
-  case SND_DEVICE_OUT_SPEAKER_AND_LINE:
-  case SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET:
-  case SND_DEVICE_OUT_VOICE_SPEAKER:
-  case SND_DEVICE_OUT_VOICE_SPEAKER_2:
-    ret = true;
-    break;
-  default:
-    break;
+    case SND_DEVICE_OUT_SPEAKER:
+    case SND_DEVICE_OUT_SPEAKER_REVERSE:
+    case SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET:
+    case SND_DEVICE_OUT_SPEAKER_AND_HDMI:
+    case SND_DEVICE_OUT_SPEAKER_AND_HEADPHONES:
+    case SND_DEVICE_OUT_SPEAKER_AND_LINE:
+    case SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET:
+    case SND_DEVICE_OUT_VOICE_SPEAKER:
+    case SND_DEVICE_OUT_VOICE_SPEAKER_2:
+      return true;
+    default:
+      break;
   }
 
-  return ret;
+  return false;
 }
 
 int audio_extn_tfa98xx_start_feedback(struct audio_device *adev,
@@ -85,8 +82,7 @@ int audio_extn_tfa98xx_start_feedback(struct audio_device *adev,
   struct audio_usecase *uc_info_rx = NULL;
   int32_t pcm_dev_rx_id = -1, ret = 0;
 
-  if (!can_enable_feedback_on_device(snd_device))
-    return 0;
+  if (!can_enable_feedback_on_device(snd_device)) return 0;
 
   ALOGV("%s: Entry", __func__);
 
@@ -96,7 +92,6 @@ int audio_extn_tfa98xx_start_feedback(struct audio_device *adev,
   }
 
   if (!pcm_rx) {
-
     uc_info_rx =
         (struct audio_usecase *)calloc(1, sizeof(struct audio_usecase));
     if (!uc_info_rx) {
@@ -137,8 +132,7 @@ int audio_extn_tfa98xx_start_feedback(struct audio_device *adev,
 exit:
 
   if (ret) {
-    if (pcm_rx)
-      pcm_close(pcm_rx);
+    if (pcm_rx) pcm_close(pcm_rx);
 
     pcm_rx = NULL;
 
@@ -163,15 +157,13 @@ void audio_extn_tfa98xx_stop_feedback(struct audio_device *adev,
                                       snd_device_t snd_device) {
   struct audio_usecase *uc_info_rx;
 
-  if (!can_enable_feedback_on_device(snd_device))
-    return;
+  if (!can_enable_feedback_on_device(snd_device)) return;
 
   ALOGV("%s: Entry", __func__);
 
   uc_info_rx = get_usecase_from_list(adev, USECASE_AUDIO_SPKR_CALIB_TX);
 
-  if (pcm_rx)
-    pcm_close(pcm_rx);
+  if (pcm_rx) pcm_close(pcm_rx);
 
   pcm_rx = NULL;
   disable_snd_device(adev, SND_DEVICE_IN_CAPTURE_VI_FEEDBACK);
