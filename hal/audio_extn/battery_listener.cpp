@@ -75,6 +75,7 @@ struct BatteryListenerImpl : public hardware::health::V2_1::IHealthInfoCallback,
     void reset();
   private:
     sp<hardware::health::V2_1::IHealth> mHealth;
+    void joinThread();
     status_t init();
     BatteryStatus mStatus;
     cb_fn_t mCb;
@@ -170,11 +171,17 @@ BatteryListenerImpl::BatteryListenerImpl(cb_fn_t cb) :
     init();
 }
 
+/* init() can bail before the thread is created; teardown must stay joinable-safe. */
+void BatteryListenerImpl::joinThread()
+{
+    if (mThread && mThread->joinable())
+        mThread->join();
+    mThread.reset();
+}
+
 BatteryListenerImpl::~BatteryListenerImpl()
 {
-    if (mThread != NULL) {
-        mThread->join();
-    }
+    joinThread();
 }
 
 void BatteryListenerImpl::reset(){
@@ -199,9 +206,7 @@ void BatteryListenerImpl::serviceDied(uint64_t cookie __unused,
         ALOGI("health service died, reinit");
         mDone = true;
     }
-    if (mThread != NULL) {
-        mThread->join();
-    }
+    joinThread();
     std::lock_guard<std::mutex> _l(mLock);
     init();
 }
